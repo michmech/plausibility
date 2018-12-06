@@ -30,7 +30,7 @@ concrete Foods0 of Foods = open Predef in {
 
 
   -- cat Kind;
-  lincat  Kind = {plausibility : Plausibility; isModified : PBool};
+  lincat  Kind = {plausibility : Plausibility};
 
   -- fun Wine, Cheese, Fish, Pizza : Kind;
   lin Wine = {plausibility = Plausible};
@@ -68,7 +68,7 @@ concrete Foods0 of Foods = open Predef in {
       <Plausible, PTrue> => Plausible;
       <_, _> => Implausible
     };
-    -- the new quality will have a very, so it cannot get another very:
+    -- the new quality will already have a very, so it cannot get another very:
     canHaveVery = PFalse
   };
 
