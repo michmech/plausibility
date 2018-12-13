@@ -3,13 +3,39 @@ concrete Foods0 of Foods = open Predef in {
 
   -- semantic properties for regulating compatibility between kinds and qualities:
   param Prop = NoProp | Taste | Price | Nationality | Temperature | Freshness;
-  oper sameProp : Prop -> Prop -> PBool = \prop1,prop2 -> case <prop1, prop2> of {
-    <Taste, Taste> => PTrue;
-    <Price, Price> => PTrue;
-    <Nationality, Nationality> => PTrue;
-    <Temperature, Temperature> => PTrue;
-    <Freshness, Freshness> => PTrue;
-    <_, _> => PFalse
+
+  -- the slots in which a kind can be modified:
+  param Slot = NoSlot | Inherent | Physical | Evaluative;
+
+  -- for a property, tell me which slot it is meant to occupy:
+  oper propToSlot : Prop -> Slot = \prop -> case prop of {
+    Nationality => Inherent;
+    Temperature | Freshness => Physical;
+    Taste | Price => Evaluative;
+    _ => NoSlot
+  };
+
+  -- does maxSlot block slot?
+  oper slotBlocked : Slot -> Slot -> PBool = \maxSlot,slot -> case <maxSlot,slot> of {
+    <NoSlot, _> => PTrue;
+    <Inherent, _> => PTrue;
+
+    <Physical, Inherent> => PFalse;
+    <Physical, _> => PTrue;
+
+    <Evaluative, Inherent> => PFalse;
+    <Evaluative, Physical> => PFalse;
+    <Evaluative, _> => PTrue
+  };
+
+  -- take a modifiability table and set one property in it to false:
+  oper unmodifiable : (Prop => Plausibility) -> Prop -> (Prop => Plausibility) = \props,prop -> table {
+    Taste => case prop of {Taste => Implausible; _ => props!Taste};
+    Price => case prop of {Price => Implausible; _ => props!Price};
+    Nationality => case prop of {Nationality => Implausible; _ => props!Nationality};
+    Temperature => case prop of {Temperature => Implausible; _ => props!Temperature};
+    Freshness => case prop of {Freshness => Implausible; _ => props!Freshness};
+    _ => Plausible
   };
 
   -- cat Comment;
@@ -25,85 +51,87 @@ concrete Foods0 of Foods = open Predef in {
     -- if both the item and the quality are plausible,
     -- and if the item is not already modified by the same semantic property that the quality carries,
     -- then the comment we are creating can also be plausible:
-    plausibility = case <item.plausibility, quality.plausibility, (sameProp item.modifiedBy quality.modifies)> of {
-      <Plausible, Plausible, PFalse> => item.modifiability!quality.modifies;
-                                        --is it plausible to modify this ittem with this quality?
-      <_,_, _> => Implausible
+    plausibility = case <item.plausibility, quality.plausibility> of {
+      <Plausible, Plausible> => item.modifiability!quality.modifies;
+                                --is it plausible to modify this ittem with this quality?
+      <_,_> => Implausible
     }
   };
 
 
   -- cat Item;
-  lincat Item = {plausibility : Plausibility; modifiability : Prop => Plausibility; modifiedBy : Prop};
+  lincat Item = {plausibility : Plausibility; modifiability : Prop => Plausibility};
 
   -- fun This, That, These, Those : Kind -> Item;
-  lin This kind = {plausibility = kind.plausibility; modifiedBy = kind.modifiedBy; modifiability = kind.modifiability};
-  lin That kind = {plausibility = kind.plausibility; modifiedBy = kind.modifiedBy; modifiability = kind.modifiability};
-  lin These kind = {plausibility = kind.plausibility; modifiedBy = kind.modifiedBy; modifiability = kind.modifiability};
-  lin Those kind = {plausibility = kind.plausibility; modifiedBy = kind.modifiedBy; modifiability = kind.modifiability};
+  lin This kind = {plausibility = kind.plausibility; modifiability = kind.modifiability};
+  lin That kind = {plausibility = kind.plausibility; modifiability = kind.modifiability};
+  lin These kind = {plausibility = kind.plausibility; modifiability = kind.modifiability};
+  lin Those kind = {plausibility = kind.plausibility; modifiability = kind.modifiability};
 
 
   -- cat Kind;
-  lincat  Kind = {plausibility : Plausibility; modifiability : Prop => Plausibility; modifiedBy : Prop};
+  lincat  Kind = {plausibility : Plausibility; maxSlot : Slot; modifiability : Prop => Plausibility;};
 
   -- fun Wine, Cheese, Fish, Pizza : Kind;
-  lin Wine = {plausibility = Plausible; modifiedBy = NoProp; modifiability = table {
+  lin Wine = {plausibility = Plausible; maxSlot = NoSlot; modifiability = table {
     Taste | Price | Nationality => Plausible;
     _ => Implausible
   }};
-  lin Cheese = {plausibility = Plausible; modifiedBy = NoProp; modifiability = table {
+  lin Cheese = {plausibility = Plausible; maxSlot = NoSlot; modifiability = table {
     Taste | Price | Nationality => Plausible;
     _ => Implausible
   }};
-  lin Fish = {plausibility = Plausible; modifiedBy = NoProp; modifiability = table {
+  lin Fish = {plausibility = Plausible; maxSlot = NoSlot; modifiability = table {
     Taste | Price | Freshness => Plausible;
     _ => Implausible
   }};
-  lin Pizza = {plausibility = Plausible; modifiedBy = NoProp; modifiability = table {
+  lin Pizza = {plausibility = Plausible; maxSlot = NoSlot; modifiability = table {
     Taste | Price | Nationality | Temperature | Freshness => Plausible;
     _ => Implausible
   }};
 
   -- fun Mod : Quality -> Kind -> Kind;
   lin Mod quality kind = {
-    -- if both the quality and the kind are plausible,
-    -- and if the kind is not already modified by something,
-    -- then the new kind we are creating can also plausible:
-    plausibility = case <kind.plausibility, quality.plausibility, kind.modifiedBy> of {
-        <Plausible, Plausible, NoProp> => kind.modifiability!quality.modifies;
-                                          --is it plausible to modify this kind with this quality?
-        <_, _, _> => Implausible
+                   -- if both the quality and the kind are plausible,
+                   -- then the new kind we are creating can also plausible:
+    plausibility = case <kind.plausibility, quality.plausibility> of {
+                                  -- if the slot this quality's property wants to occupy is not blocked yet,
+                                  -- then the new kind we are creating can plausible:
+        <Plausible, Plausible> => case (slotBlocked kind.maxSlot (propToSlot quality.modifies)) of {
+          PTrue => kind.modifiability!quality.modifies; --is it plausible to modify this kind with this quality?
+          PFalse => Implausible
+        };
+        <_, _> => Implausible
     };
-    -- the new kind can be modified by the same things as the old kind:
-    modifiability = kind.modifiability;
-
-    -- store information about semantic property this kind is modified with:
-    modifiedBy = quality.modifies
+    --the new max slot is that of the quality's property:
+    maxSlot = propToSlot quality.modifies;
+    -- the new kind can be modified by the same properties as the old kind, minus the quality's property:
+    modifiability = unmodifiable kind.modifiability quality.modifies
   };
 
 
   -- cat Quality;
-  lincat  Quality = {plausibility : Plausibility; canHaveVery : PBool; modifies : Prop};
+  lincat  Quality = {plausibility : Plausibility; gradable : PBool; modifies : Prop};
 
   -- fun Fresh, Warm, Italian, Expensive, Delicious, Boring : Quality;
-  lin Fresh = {plausibility = Plausible; canHaveVery = PTrue; modifies = Freshness};
-  lin Warm = {plausibility = Plausible; canHaveVery = PTrue; modifies = Temperature};
-  lin Cold = {plausibility = Plausible; canHaveVery = PTrue; modifies = Temperature};
-  lin Italian = {plausibility = Plausible; canHaveVery = PFalse; modifies = Nationality};
-  lin French = {plausibility = Plausible; canHaveVery = PFalse; modifies = Nationality};
-  lin Expensive = {plausibility = Plausible; canHaveVery = PTrue; modifies = Price};
-  lin Cheap = {plausibility = Plausible; canHaveVery = PTrue; modifies = Price};
-  lin Delicious = {plausibility = Plausible; canHaveVery = PTrue; modifies = Taste};
+  lin Fresh = {plausibility = Plausible; gradable = PTrue; modifies = Freshness};
+  lin Warm = {plausibility = Plausible; gradable = PTrue; modifies = Temperature};
+  lin Cold = {plausibility = Plausible; gradable = PTrue; modifies = Temperature};
+  lin Italian = {plausibility = Plausible; gradable = PFalse; modifies = Nationality};
+  lin French = {plausibility = Plausible; gradable = PFalse; modifies = Nationality};
+  lin Expensive = {plausibility = Plausible; gradable = PTrue; modifies = Price};
+  lin Cheap = {plausibility = Plausible; gradable = PTrue; modifies = Price};
+  lin Delicious = {plausibility = Plausible; gradable = PTrue; modifies = Taste};
 
   --  fun Very : Quality -> Quality;
   lin Very quality = {
     -- if the quality is plausible and if it can have very, then the new quality is also plausible:
-    plausibility = case <quality.plausibility, quality.canHaveVery> of {
+    plausibility = case <quality.plausibility, quality.gradable> of {
       <Plausible, PTrue> => Plausible;
       <_, _> => Implausible
     };
     -- the new quality will have a very, so it cannot get another very:
-    canHaveVery = PFalse;
+    gradable = PFalse;
     -- the new quality modifies the same semantic property as the old quality:
     modifies = quality.modifies
   };

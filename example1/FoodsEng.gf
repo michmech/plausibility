@@ -21,7 +21,7 @@ concrete FoodsEng of Foods = {
     Pizza = regNoun "pizza" ;
     Very a = {s = "very" ++ a.s} ;
     Fresh = adj "fresh" ;
-    Warm = adj "warm" ;
+    Warm = adj "hot" ;
     Cold = adj "cold" ;
     Italian = adj "Italian" ;
     French = adj "French" ;

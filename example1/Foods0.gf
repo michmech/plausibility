@@ -49,27 +49,27 @@ concrete Foods0 of Foods = open Predef in {
 
 
   -- cat Quality;
-  lincat  Quality = {plausibility : Plausibility; canHaveVery : PBool};
+  lincat  Quality = {plausibility : Plausibility; gradable : PBool};
 
   -- fun Fresh, Warm, Italian, Expensive, Delicious, Boring : Quality;
-  lin Fresh = {plausibility = Plausible; canHaveVery = PTrue};
-  lin Warm = {plausibility = Plausible; canHaveVery = PTrue};
-  lin Cold = {plausibility = Plausible; canHaveVery = PTrue};
-  lin Italian = {plausibility = Plausible; canHaveVery = PFalse};
-  lin French = {plausibility = Plausible; canHaveVery = PFalse};
-  lin Expensive = {plausibility = Plausible; canHaveVery = PTrue};
-  lin Cheap = {plausibility = Plausible; canHaveVery = PTrue};
-  lin Delicious = {plausibility = Plausible; canHaveVery = PTrue};
+  lin Fresh = {plausibility = Plausible; gradable = PTrue};
+  lin Warm = {plausibility = Plausible; gradable = PTrue};
+  lin Cold = {plausibility = Plausible; gradable = PTrue};
+  lin Italian = {plausibility = Plausible; gradable = PFalse};
+  lin French = {plausibility = Plausible; gradable = PFalse};
+  lin Expensive = {plausibility = Plausible; gradable = PTrue};
+  lin Cheap = {plausibility = Plausible; gradable = PTrue};
+  lin Delicious = {plausibility = Plausible; gradable = PTrue};
 
   --  fun Very : Quality -> Quality;
   lin Very quality = {
     -- if the quality is plausible and if it can have very, then the new quality is also plausible:
-    plausibility = case <quality.plausibility, quality.canHaveVery> of {
+    plausibility = case <quality.plausibility, quality.gradable> of {
       <Plausible, PTrue> => Plausible;
       <_, _> => Implausible
     };
-    -- the new quality will already have a very, so it cannot get another very:
-    canHaveVery = PFalse
+    -- the new quality will have a very, so it becomes ungradable:
+    gradable = PFalse
   };
 
 }
