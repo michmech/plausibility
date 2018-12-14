@@ -8,7 +8,7 @@ This document describes a technique called plausibility filtering which you can 
 
 Application grammars written in [Grammatical Framework](http://www.grammaticalframework.org/) (GF) often overgenerate in the sense that they produce semantically implausible sentences. Take, for example, the well-known [Foods](https://github.com/GrammaticalFramework/gf-contrib/tree/master/foods) grammar which is often used in GF tutorials. This grammar parses and linearizes comments on food such as *this pizza is delicious* and *that Italian wine is expensive*. If you use this grammar for random generation it will randomly pick combinations of food items and food qualities and produce sentences, some of which will be perfectly normal (like the two examples above) while others will be "weird", implausible, such as *this pizza is very Italian* and *those hot fish are hot*.
 
-GF grammars tend to overgenerate like this because GF's formalism of abstract grammars and abstract syntax trees, where the language-independent semantics of the sentences is described, is not expressive enough to capture all the semantic and pragmatic details you would need to bring in in order to block overgeneration. For example, in the Foods grammar, you would like to be able to encode the fact that some food qualities (eg. hot) can plausibly be applied only to some food items (eg. pizza) but not to others (eg. fish). There is no easy way to encode that constraint in GF's abstract grammars.
+GF grammars tend to overgenerate like this because GF's formalism of abstract grammars and abstract syntax trees, where the language-independent meaning of the sentences is suppossed to be described, is not expressive enough to capture all the semantic and pragmatic details you would need to bring in in order to block overgeneration. For example, in the Foods grammar, you would like to be able to encode the fact that some food qualities (eg. hot) can plausibly be applied only to some food items (eg. pizza) but not to others (eg. fish). There is no easy way to encode that constraint in GF's abstract grammars.
 
 ## Previous solutions (or rather, non-solutions)
 
@@ -28,7 +28,7 @@ A third option, perhaps, would be not to worry about overgeneration at all and t
 
 The technique I am proposing here is based on one simple trick: if you cannot use the abstract grammar to describe semanics in all the necessary detail, then you use one of the concrete grammars instead. You add one additional concrete grammar to your application and this grammar, instead of linearizing into any particular language, will linearize into formal statements about the plausibility or otherwise of the sentence.
 
-Concrete grammars are much more expressive than abstract grammars: you can have records, tables, parameters, `case of` code branching, functions and so on. With these, you can describe the semantic and pragmatic properties of things in your abstract syntax tree and then compute them compositionally up the tree. In the end, for each abstract syntax tree, the grammar linearizes into either the string "ok" (meaning the sentence is plausible) or "notok" (meaning the sentence is implausible).
+Concrete grammars are much more expressive than abstract grammars: you can have records, tables, parameters, `case of` code branching, functions and so on. With these, you can describe the semantic and pragmatic properties of things in your abstract syntax tree and then compute them compositionally up the tree. In the end, for each abstract syntax tree, the grammar linearizes into either the string `"ok"` (meaning the sentence is plausible) or `"notok"` (meaning the sentence is implausible).
 
 ```
 > l Pred (That Cheese) Delicious
@@ -50,11 +50,11 @@ The source code for this example can be found in the `example0` directory.
 
 We're using the Foods grammar pretty much without change. The only changes I've made to the abstract syntax are:
 
-- I added a few more `Quality` objects so we have a wider range to play with later.
-- I've removed the `Boring` quality because I find it implausible to describe *any* food with that adjective.
-- I've changed the English linearization of the `Warm` quality from *warm* to *hot* because I find it more idiomatic to describe food as hot rather than warm in English.
+- I added a few more `Quality` objects so we have a wider range to play with.
+- I removed the `Boring` quality because I find it implausible to describe *any* food with that adjective.
+- I changed the English linearization of the `Warm` quality from *warm* to *hot* because I find it more idiomatic in English to describe food as hot rather than warm.
 
-The plausibility filter I've added is a concrete grammar called `Foods0.gf`. The `0` in the name is just an arbitrary "language" name. You can of course call this "language" anything you want but I am calling it "language zero" because this name is unlikely to conflict with any real language name and because the file neatly sorts alphabetically right after the abstract grammar `Foods.gf` and before any oher conrcete grammars.
+The plausibility filter I've added is a concrete grammar called `Foods0.gf`. The `0` in the name is just an arbitrary "language" name. You can of course call this "language" anything you want but I am calling it "language zero" because this name is unlikely to conflict with any real language name and because the file neatly sorts alphabetically right after the abstract grammar `Foods.gf` and before any other concrete grammars.
 
 Inside this grammar you will find a parameter called `Plausibility` which we will use everywhere to encode the fact that something is or isn't plausible.
 
@@ -79,7 +79,7 @@ lin Cold = {plausibility = Plausible};
 ...
 ```
 
-Objects which are built from oher objects with tree-building functions get their plausibility compositionally from their constituents. The default rule is that, if all child constituents are plausible, then the parent constituent is plausible too.
+Objects which are built from other objects with tree-building functions get their plausibility compositionally from their constituents. The default rule is that, if all child constituents are plausible, then the parent constituent is plausible too.
 
 ```
 -- fun Mod : Quality -> Kind -> Kind;
@@ -182,13 +182,13 @@ The source code for this example can be found in the `example2` directory. It bu
 
 Let's do something more complicated now and turn our attention to the combinations of kinds (pizza, wine...) and qualities (delicious, expensive...).
 
-- Let's change the plausibility filter so that, when "weird" combinations occur, the sentence is labelled as implausible. We will do this for kind-quality combinations both in attribution (*fresh wine*) and in predication (*this wine is fresh*).
+- Let's change the plausibility filter so that, when "weird" combinations occur, the sentence is labelled as implausible. We will do this for kind-quality combinations that occur both in attribution (*fresh wine*) and in predication (*this wine is fresh*).
 
-- When we have more than one quality modifying a kind in attribution, such *expensive delicious fresh Italian wine*, we want to label as implausible those cases when the same quality appears there twice, such as *fresh delicious fresh fish*. We want to disqualify not only those sentences where the two qualities are exactly the same, but also sentences where the two qualities are different but contradictory, for example *this hot cold pizza*.
+- When we have more than one quality modifying a kind attributively, such as *expensive delicious fresh Italian wine*, we want to label as implausible those cases when the same quality appears there twice, such as *fresh delicious fresh fish*. We want to disqualify not only those sentences where the two qualities are exactly the same, but also sentences where the two qualities are different but contradictory, for example *this hot cold pizza*.
 
-- Simultaneously, let's label as implausible sentences such as *this fresh fish is fresh* where the same quality appears on both sides of the equation: inside the noun phrase (the "left-hand side") and in the predicate (the "right-hand side"). And, as above, We want to disqualify not only those sentences where the two qualities are exactly the same, but also sentences where the two qualities are different but contradictory, for example *this hot pizza is cold*.
+- Simultaneously, let's label as implausible sentences such as *this fresh fish is fresh* where the same quality appears on both sides of the equation: inside the noun phrase (the "left-hand side") and in the predicate (the "right-hand side"). And, as above, we want to disqualify not only those sentences where the two qualities are exactly the same, but also sentences where the two qualities are different but contradictory, for example *this hot pizza is cold*.
 
-First of all, let's have a think about how we want to formalize the concept of compatibility between kinds (pizza, wine...) and qualities (hot, expensive...). My suggestion is as follows. Each quality, when it is attached to a kind, modifies one of its **properties**. For example, *hot* modifies the *temperature* property, *expensive* modifies the *price* property, *cheap* also modifies the *price* property, and so on. That's one half of the story. The other half is that each kind has a certain set of properties which can be modified. *Pizza* has the property *temperature* and so it can plausibly be modified by *hot*, while *fish* doesn't have that property so it cannot (more accurately, it can, but that renders the sentence implausible). So, the concept of properties is central here and we will use it to formalize compatibility and incompatibility between kinds and qualities. A quality and a kind are compatible if they share a property, and incompatible if they don't.
+First of all, let's have a think about how we want to formalize the concept of compatibility between kinds (pizza, wine...) and qualities (hot, expensive...). My suggestion is as follows. Each quality, when it is attached to a kind, modifies one of its **properties**. For example, *hot* modifies the *temperature* property, *expensive* modifies the *price* property, *cheap* also modifies the *price* property, and so on. That's one half of the story. The other half is that each kind has a certain set of properties for which can be modified. *Pizza* has the property *temperature* and so it can plausibly be modified by *hot*, while *fish* doesn't have that property so it cannot (more accurately, it can, but that renders the sentence implausible). So, the concept of properties is central here and we will use it to formalize compatibility and incompatibility between kinds and qualities. A quality and a kind are compatible if they share a property, and incompatible if they don't.
 
 Let's start by adding to `Foods0.gf` a parameter for encoding properties.
 
@@ -210,7 +210,7 @@ lin Cold = {plausibility = Plausible; gradable = PTrue; modifies = Temperature};
 ...
 ```
 
-The linearization type of `Kind` needs something similar. One complication, however, is the fact that most kinds can be plausibly modified for more than one property. For example, *fish* can plausibly be modified for *taste*, *price* and *freshness*. So, in the linearization type of `Kind`, we will have a property called `modifiability` and it will be a table from `Prop` to `Plausibility`. The table will tell us whether it is or isn't plausible to modify the kind for a given property.
+The linearization type of `Kind` needs something similar. One complication, however, is the fact that most kinds can be plausibly modified for more than one property. For example, *fish* can plausibly be modified for *taste*, *price* and *freshness*. So, in the linearization type of `Kind`, we will have a property called `modifiability` and it will be a table from `Prop` to `Plausibility`. Let' call it *the modifiability table*. It tells us whether it is or isn't plausible to modify the kind for a given property.
 
 ```
 -- cat Kind;
@@ -264,7 +264,7 @@ oper unmodifiable : (Prop => Plausibility) -> Prop -> (Prop => Plausibility) = \
 };
 ```
 
-The `Mod` function removes `quality.modifies` from the `kind`'s `modifiability` (using an oper called `unmodifiable`) and this has the effect that the `kind` can no longer be plausibly modified by a `quality` with the same `modifies`. In other words, for example, once a kind has been modified with something *cold*, the property *temperature* is removed from the the kind's modifiable properties and the kind can no longer be plausibly modified with either *cold* or *hot*.
+The `Mod` function removes `quality.modifies` from the `kind`'s `modifiability` (using an oper called `unmodifiable`) and this has the effect that the `kind` can no longer be plausibly modified by a `quality` with the same `modifies`. For example, once a kind has been modified with something *cold*, the property *temperature* is removed from the the kind's modifiable properties and the kind can no longer be plausibly modified with either *cold* or *hot*.
 
 ```
 Foods> p -lang=Eng "this hot fish is expensive" | l -lang=0
@@ -290,7 +290,7 @@ lin These kind = {plausibility = kind.plausibility; modifiability = kind.modifia
 lin Those kind = {plausibility = kind.plausibility; modifiability = kind.modifiability};
 ```
 
-Now our `Item` objects know what they can be modified with. Finally, the `Pred` function, which combines an item and a quality to produce a sentence, will use this information to label certain sentences as implausible.
+Now our `Item` objects know too what they can be modified with. Finally, the `Pred` function, which combines an item and a quality to produce a sentence, will use this information to label certain sentences as implausible.
 
 ```
 -- fun Pred : Item -> Quality -> Comment;
@@ -326,13 +326,13 @@ Foods> p -lang=Eng "this hot pizza is delicious" | l -lang=0
 ok
 ```
 
-# Enforcing ordered modification
+## Example 3: Enforcing ordered modification
 
 The source code for this example can be found in the `example3` directory. It builds on the code from example 2.
 
-The grammar we have so far allows the qualities that modify a kind attributively to appear in any order. This sometimes results in implausible expressions such as *Italian delicious pizza*. It would be more plausible to have the adjectives in the reverse order: *delicious Italian pizza*. So, let's modify the plausiblity filter so that it disqualifies sentences where the qualities are stacked in an implausible order.
+The grammar we have so far allows the qualities that modify a kind attributively to appear in any order. This sometimes results in slightly disharmonious expressions such as *Italian delicious pizza*. It would be nicer to have the adjectives in the reverse order: *delicious Italian pizza*. So, let's modify the plausiblity filter so that it disqualifies sentences where the qualities are stacked in the "wrong" order.
 
-But first, how would you formalize the concept of plausible order? My suggestion is as follows. When modifying anything, there is a fixed sequence of "slots", each of which can be occupied by zero, one or more qualities. The slots are ordered from "nearest" to "farthest" as follows:
+But first, how would you formalize the concept of right or wrong order? My suggestion is as follows. When modifying anything, there is a fixed sequence of "slots", each of which can be occupied by zero, one or more qualities. The slots are ordered from "nearest" to "farthest" from the head noun as follows:
 
 1. The first slot is for qualities which describe some **inherent**, unchangeable property of the kind, such as its nationality: *Italian pizza*.
 
@@ -340,20 +340,20 @@ But first, how would you formalize the concept of plausible order? My suggestion
 
 3. The third slot is for qualities which describe some **evaluative** property which is the result of human judgment, such as taste or price: *delicious hot Italian pizza*.
 
-When adding a quality to a kind, we need to know which slot the quality belongs to. And, once the quality has been added to the kind, all slots before it are "blocked". That is why it is implausible, for example, to add an **inherent** quality once a **physical** or **evaluative** property has been added. For example, once you've added delicious to pizza, you can no longer add hot or Italian. You can still add expensive though: the **evaluative** hasn't been blocked yet. Inside each slot, the qualifiers can plausiblity appear in any order: *expensive delicious pizza* or *delicious expensive pizza*.
+When adding a quality to a kind, we need to know which slot the quality belongs to. And, once the quality has been added to the kind, all slots before it are "blocked". That is why it is implausible, for example, to add an **inherent** quality once a **physical** or **evaluative** property has been added. For example, once you've added *delicious* to *pizza*, you can no longer add *hot* or *Italian*. You can still add *expensive* though: the **evaluative** slot hasn't been blocked yet. Inside each slot, the qualities can plausiblity appear in any order: *expensive delicious pizza* and *delicious expensive pizza* are both plausible.
 
-It seems reasonable to assume that this tendency for qualities to "stack up" in ordered slots is language-independent, at least in the limited domain of our Foods grammar. In the linearizations, the slots are ordered in such a way that slot 1 is nearest the head noun and slot 3 is farthest. In languages where adjectives are before the head noun, this means that the slots are ordered from right to left:
+It seems reasonable to assume that this tendency for qualities to "stack up" in ordered slots is language-independent, at least in the small domain of our Foods grammar. In the linearizations, the slots are ordered in such a way that slot 1 is nearest the head noun and slot 3 is farthest. In languages where adjectives are before the head noun, this means that the slots are ordered from right to left:
 
 - **evaluative** → **physical** → **inherenet** → noun  
   eg. *delicious hot Italian pizza*
 
-And in languages where where adjectives are after the head noun, the slots are are ordered from left to right:
+And in languages where where adjectives are after the head noun, the slots are ordered from left to right:
 
 - noun → **inherenet** → **physical** → **evaluative**  
   eg. *píotsa Iodálach te blasta* (example in Irish)  
   literally *pizza Italian hot delicious*
 
-Now, let's implement this in our plausiblity filter. First, we need a parameter to tell us which slots exist
+Now, let's implement this in our plausiblity filter. First, we need a parameter to tell us which slots exist.
 
 ```
 -- the slots in which a kind can be modified:
@@ -372,7 +372,7 @@ oper propToSlot : Prop -> Slot = \prop -> case prop of {
 };
 ```
 
-Each `Kind` will have a new property, named maxSlot, which tells us what the highest-ranking slot is that already has at least one quality in it.
+Each `Kind` will have a new property, named `maxSlot`, which tells us what the highest-ranking slot is that already has at least one quality in it.
 
 ```
 -- cat Kind;
