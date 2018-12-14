@@ -26,7 +26,7 @@ A third option, perhaps, would be not to worry about overgeneration at all and t
 
 ## My solution
 
-The technique I am proposing here is based on one simple trick: if you cannot use the abstract grammar to describe semanics in all the necessary detail, then you use one of the concrete grammars instead. You add one additional concrete grammar to your application and this grammar, instead of linearizing into any particular language, will linearize into formal statements about the plausibility or otherwise of the sentence.
+The technique I am proposing here is based on one simple trick: if you cannot use the abstract grammar to describe semantics in all the necessary detail, then you use one of the concrete grammars instead. You add one additional concrete grammar to your application and this grammar, instead of linearizing into any particular language, will linearize into formal statements about the plausibility or otherwise of the sentence.
 
 Concrete grammars are much more expressive than abstract grammars: you can have records, tables, parameters, `case of` code branching, functions and so on. With these, you can describe the semantic and pragmatic properties of things in your abstract syntax tree and then compute them compositionally up the tree. In the end, for each abstract syntax tree, the grammar linearizes into either the string `"ok"` (meaning the sentence is plausible) or `"notok"` (meaning the sentence is implausible).
 
